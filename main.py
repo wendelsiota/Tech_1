@@ -8,6 +8,8 @@ from pydantic import BaseModel, Field
 
 app = FastAPI(
     title="Vitibrasil Scraper API",
+
+       
     description="""
     API para scraping de dados do site Vitibrasil, com opções de ano, categoria e subcategoria.
 
@@ -79,21 +81,28 @@ def build_url(ano: int, opcao: str, subopcao: Optional[str] = None) -> str:
         params["subopcao"] = subopcao
     return f"{base_url}?{urlencode(params)}"
 
+@app.get("/metadata", summary="Listar opções e subopções disponíveis", tags=["Metadados"])
+def get_metadata():
+    return VALID_OPTIONS
+
 @app.get(
     "/scrape",
     response_model=TableResponse,
     responses={
-        400: {"model": ErrorResponse},
-        500: {"model": ErrorResponse}
+        400: {"model": ErrorResponse, "description": "Parâmetro inválido"},
+        500: {"model": ErrorResponse, "description": "Erro interno"}
     },
-    summary="Extrair dados da tabela do Vitibrasil",
-    description="Endpoint para extrair dados de tabelas do site Vitibrasil com base em ano, opção e subopção."
+    summary="Extrair dados do Vitibrasil",
+    description="Extrai os dados da tabela com base em ano, opção e subopção. Veja as opções disponíveis em `/metadata`.",
+    tags=["Scraping"]
 )
 async def get_table_data(
-    ano: int = Query(..., description="Ano da consulta (ex.: 2020). Deve estar entre 1970 e 2024.", ge=1970, le=2024),
-    opcao: str = Query(..., description="Opção da consulta. Veja a tabela de opções na descrição geral da API."),
-    subopcao: Optional[str] = Query(None, description="Subopção da consulta (obrigatória para algumas opções como opt_03, opt_05, opt_06).")
+    ano: int = Query(..., description="Ano da consulta", ge=1970, le=2024, example=2020),
+    opcao: str = Query(..., description="Código da opção", example="opt_03"),
+    subopcao: Optional[str] = Query(None, description="Código da subopção", example="subopt_01")
 ):
+
+
 
     if opcao not in VALID_OPTIONS:
         raise HTTPException(
